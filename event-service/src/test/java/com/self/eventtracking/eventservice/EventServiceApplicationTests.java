@@ -10,4 +10,9 @@ class EventServiceApplicationTests {
 	void contextLoads() {
 	}
 
+	// Test class added ONLY to cover main() invocation not covered by application tests.
+   @Test
+   public void main() {
+	   EventServiceApplication.main(new String[] {});
+   }
 }

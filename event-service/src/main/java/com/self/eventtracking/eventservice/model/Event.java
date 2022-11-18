@@ -20,7 +20,7 @@ public class Event {
 	private String title;
 	private String description;
 	
-	@Size(min=5, message = "Event Region should have atleast 5 characters")
+	@Size(min=3, message = "Event region should have atleast 3 characters")
 	private String region;
 	
 	@Future(message = "Event date should not be in the past")

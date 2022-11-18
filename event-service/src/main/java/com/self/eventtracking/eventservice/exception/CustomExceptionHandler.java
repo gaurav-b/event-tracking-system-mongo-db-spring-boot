@@ -12,6 +12,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
+import com.self.eventtracking.eventservice.controller.EventNotFoundException;
+
 @ControllerAdvice
 public class CustomExceptionHandler extends ResponseEntityExceptionHandler {
 
@@ -21,6 +23,14 @@ public class CustomExceptionHandler extends ResponseEntityExceptionHandler {
 														ex.getMessage(), 
 														request.getDescription(false));
 		return new ResponseEntity<ErrorDetails>(errorDetails, HttpStatus.INTERNAL_SERVER_ERROR);
+	}
+	
+	@ExceptionHandler(EventNotFoundException.class)
+	public final ResponseEntity<ErrorDetails> handleEventNotFoundExceptionException(Exception ex, WebRequest request) throws Exception {
+		ErrorDetails errorDetails = new ErrorDetails(LocalDateTime.now(), 
+														ex.getMessage(), 
+														request.getDescription(false));
+		return new ResponseEntity<ErrorDetails>(errorDetails, HttpStatus.NOT_FOUND);
 	}
 	
 	protected ResponseEntity<Object> handleMethodArgumentNotValid(
