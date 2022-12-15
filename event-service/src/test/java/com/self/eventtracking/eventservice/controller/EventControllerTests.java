@@ -1,7 +1,6 @@
 package com.self.eventtracking.eventservice.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -29,8 +28,11 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
-import com.self.eventtracking.eventservice.dao.EventRepository;
-import com.self.eventtracking.eventservice.model.Event;
+import com.self.eventtracking.eventservice.dao.command.EventCommandRepository;
+import com.self.eventtracking.eventservice.dao.query.EventQueryRepository;
+import com.self.eventtracking.eventservice.exception.EventNotFoundException;
+import com.self.eventtracking.eventservice.model.EventCommand;
+import com.self.eventtracking.eventservice.model.EventQuery;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -40,49 +42,44 @@ public class EventControllerTests {
 	private MockMvc mockMvc;
 	
 	@Mock
-	private EventRepository eventRepository;
+	private EventCommandRepository eventCommandRepository;
 	
-	@Test
-	@Disabled
-	public void test_findAllEvents1() throws Exception {
-		mockMvc.perform(get("/events"))
-			.andDo(print())
-			.andExpect(status().isOk());
-	}
+	@Mock
+	private EventQueryRepository eventQueryRepository;
 	
 	@Test
 	public void test_defaultConstructor() {
-		new Event();
+		new EventCommand();
 	}
 	
 	@Test
 	public void test_findAllEvents() throws Exception {
 		
-		EventController controller = new EventController(eventRepository);
-		Mockito.when(eventRepository.findAll()).thenReturn(new ArrayList<Event>());
-		List<Event> events = controller.findAllEvents();
+		EventController controller = new EventController(eventCommandRepository, eventQueryRepository);
+		Mockito.when(eventQueryRepository.findAll()).thenReturn(new ArrayList<EventQuery>());
+		List<EventQuery> events = controller.findAllEvents();
 		assertThat(events.isEmpty());
 	}
 	
 	@Test
 	public void test_findEventById_EventExist() throws Exception {
 		
-		Optional<Event> event = Optional.ofNullable(new Event(
+		Optional<EventQuery> event = Optional.ofNullable(new EventQuery(
 				"013543e9-1eed-419b-93fb-4ad752d3391c", "dummy", "dummy", "dummy", null, null, null, 10));
 		
-		EventController controller = new EventController(eventRepository);
-		Mockito.when(eventRepository.findById(Mockito.anyString())).thenReturn(event);
-		EntityModel<Event> entityModel = controller.findEventById("013543e9-1eed-419b-93fb-4ad752d3391c");
+		EventController controller = new EventController(eventCommandRepository, eventQueryRepository);
+		Mockito.when(eventQueryRepository.findById(Mockito.anyString())).thenReturn(event);
+		EntityModel<EventQuery> entityModel = controller.findEventById("013543e9-1eed-419b-93fb-4ad752d3391c");
 		assertThat(entityModel.getContent().getTitle().equals("dummy"));
 	}
 	
 	@Test
 	public void test_findEventById_EventNotExist() throws Exception {
 		
-		Optional<Event> event = Optional.empty();
+		Optional<EventQuery> event = Optional.empty();
 		
-		EventController controller = new EventController(eventRepository);
-		Mockito.when(eventRepository.findById(Mockito.anyString())).thenReturn(event);
+		EventController controller = new EventController(eventCommandRepository, eventQueryRepository);
+		Mockito.when(eventQueryRepository.findById(Mockito.anyString())).thenReturn(event);
 		
 		assertThrows(EventNotFoundException.class,
 						() -> {
@@ -93,13 +90,13 @@ public class EventControllerTests {
 	@Test
 	public void test_findEventByRegion_ListAvail() throws Exception {
 		
-		List<Event> eventList = new ArrayList<>();
-		eventList.add(new Event(
+		List<EventQuery> eventList = new ArrayList<>();
+		eventList.add(new EventQuery(
 				"013543e9-1eed-419b-93fb-4ad752d3391c", "dummy", "dummy", "Mumbai", null, null, null, 10));
 		
-		EventController controller = new EventController(eventRepository);
-		Mockito.when(eventRepository.findByRegion(Mockito.anyString())).thenReturn(eventList);
-		List<Event> result = controller.findEventByRegion("Mumbai");
+		EventController controller = new EventController(eventCommandRepository, eventQueryRepository);
+		Mockito.when(eventQueryRepository.findByRegion(Mockito.anyString())).thenReturn(eventList);
+		List<EventQuery> result = controller.findEventByRegion("Mumbai");
 		assertThat(result.get(0).getRegion().equals("Mumbai"));
 	}
 	
@@ -111,23 +108,23 @@ public class EventControllerTests {
 	@Disabled
 	public void test_findEventByRegion_ListNotAvail() throws Exception {
 		
-		List<Event> eventList = new ArrayList<>();
-		eventList.add(new Event(
+		List<EventQuery> eventList = new ArrayList<>();
+		eventList.add(new EventQuery(
 				"013543e9-1eed-419b-93fb-4ad752d3391c", "dummy", "dummy", "Mumbai", null, null, null, 10));
 		
-		EventController controller = new EventController(eventRepository);
-		Mockito.when(eventRepository.findByRegion(Mockito.anyString())).thenReturn(eventList);
-		List<Event> result = controller.findEventByRegion("dummy");
+		EventController controller = new EventController(eventCommandRepository, eventQueryRepository);
+		Mockito.when(eventQueryRepository.findByRegion(Mockito.anyString())).thenReturn(eventList);
+		List<EventQuery> result = controller.findEventByRegion("dummy");
 		assertTrue(result.isEmpty());
 	}
 	
 	@Test
 	public void test_deleteEvent_EventNotExist() throws Exception {
 		
-		Optional<Event> event = Optional.empty();
+		Optional<EventCommand> event = Optional.empty();
 		
-		EventController controller = new EventController(eventRepository);
-		Mockito.when(eventRepository.findById(Mockito.anyString())).thenReturn(event);
+		EventController controller = new EventController(eventCommandRepository, eventQueryRepository);
+		Mockito.when(eventCommandRepository.findById(Mockito.anyString())).thenReturn(event);
 		
 		assertThrows(EventNotFoundException.class,
 						() -> {
@@ -138,12 +135,12 @@ public class EventControllerTests {
 	@Test
 	public void test_deleteEvent_EventExist() throws Exception {
 		
-		Optional<Event> event = Optional.ofNullable(new Event(
+		Optional<EventCommand> event = Optional.ofNullable(new EventCommand(
 				"013543e9-1eed-419b-93fb-4ad752d3391c", "dummy", "dummy", "dummy", null, null, null, 10));
 		
-		EventController controller = new EventController(eventRepository);
-		Mockito.when(eventRepository.findById(Mockito.anyString())).thenReturn(event);
-		Mockito.doNothing().when(eventRepository).deleteById(Mockito.anyString());
+		EventController controller = new EventController(eventCommandRepository, eventQueryRepository);
+		Mockito.when(eventCommandRepository.findById(Mockito.anyString())).thenReturn(event);
+		Mockito.doNothing().when(eventCommandRepository).deleteById(Mockito.anyString());
 		
 		controller.deleteEvent("013543e9-1eed-419b-93fb-4ad752d3391c");
 	}
@@ -151,18 +148,18 @@ public class EventControllerTests {
 	@Test
 	public void test_createEvent() {
 		
-		Event eventToBeSaved = new Event("", "dummy", "dummy", "dummy", null, null, null, 10);
-		EventController controller = new EventController(eventRepository);
+		EventCommand eventToBeSaved = new EventCommand("", "dummy", "dummy", "dummy", null, null, null, 10);
+		EventController controller = new EventController(eventCommandRepository, eventQueryRepository);
 		
 		MockHttpServletRequest request = new MockHttpServletRequest();
 	    RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
 	    URI location = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}").
 	            buildAndExpand(eventToBeSaved.getId()).toUri();
-	    ResponseEntity<Event> response = ResponseEntity.created(location).build();
+	    ResponseEntity<EventCommand> response = ResponseEntity.created(location).build();
 	    
-	    Mockito.when(eventRepository.save(eventToBeSaved)).thenReturn(eventToBeSaved);
+	    Mockito.when(eventCommandRepository.save(eventToBeSaved)).thenReturn(eventToBeSaved);
 	    
-	    ResponseEntity<Event> result =  controller.createEvent(eventToBeSaved);
+	    ResponseEntity<EventCommand> result =  controller.createEvent(eventToBeSaved);
 	    
 	    String locationHeaderValue = result.getHeaders().get("location").get(0);
 		assertFalse(locationHeaderValue.substring(locationHeaderValue.lastIndexOf('/')).isEmpty());
@@ -171,11 +168,11 @@ public class EventControllerTests {
 	@Test
 	public void test_updateEvent_EventNotExist() {
 	
-		Optional<Event> event = Optional.empty();
-		Event eventToBeUpdated = new Event("", "dummy", "dummy", "dummy", null, null, null, 10);
+		Optional<EventCommand> event = Optional.empty();
+		EventCommand eventToBeUpdated = new EventCommand("", "dummy", "dummy", "dummy", null, null, null, 10);
 		
-		EventController controller = new EventController(eventRepository);
-		Mockito.when(eventRepository.findById(Mockito.anyString())).thenReturn(event);
+		EventController controller = new EventController(eventCommandRepository, eventQueryRepository);
+		Mockito.when(eventCommandRepository.findById(Mockito.anyString())).thenReturn(event);
 		
 		assertThrows(EventNotFoundException.class,
 						() -> {
@@ -186,18 +183,18 @@ public class EventControllerTests {
 	@Test
 	public void test_updateEvent_EventExist() {
 		
-		Optional<Event> eventToBeUpdated = Optional.ofNullable(new Event(
+		Optional<EventCommand> eventToBeUpdated = Optional.ofNullable(new EventCommand(
 				"013543e9-1eed-419b-93fb-4ad752d3391c", "dummy", "dummy", "dummy", null, null, null, 10));
-		EventController controller = new EventController(eventRepository);
+		EventController controller = new EventController(eventCommandRepository, eventQueryRepository);
 		
 		MockHttpServletRequest request = new MockHttpServletRequest();
 	    RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
 	    URI location = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}").
 	            buildAndExpand(eventToBeUpdated.get().getId()).toUri();
-	    ResponseEntity<Event> response = ResponseEntity.created(location).build();
+	    ResponseEntity<EventCommand> response = ResponseEntity.created(location).build();
 	    
-	    Mockito.when(eventRepository.findById(Mockito.anyString())).thenReturn(eventToBeUpdated);
-	    Mockito.when(eventRepository.save(eventToBeUpdated.get())).thenReturn(eventToBeUpdated.get());
+	    Mockito.when(eventCommandRepository.findById(Mockito.anyString())).thenReturn(eventToBeUpdated);
+	    Mockito.when(eventCommandRepository.save(eventToBeUpdated.get())).thenReturn(eventToBeUpdated.get());
 	    
 		assertThat(controller.updateEvent(eventToBeUpdated.get())).isEqualTo(response);
 	}
