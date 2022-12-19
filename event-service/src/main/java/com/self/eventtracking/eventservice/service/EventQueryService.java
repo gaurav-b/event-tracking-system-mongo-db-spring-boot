@@ -1,4 +1,4 @@
-package com.self.eventtracking.eventservice.controller;
+package com.self.eventtracking.eventservice.service;
 
 import java.util.Optional;
 

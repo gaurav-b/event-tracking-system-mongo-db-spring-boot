@@ -4,18 +4,20 @@ import java.io.IOException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
-import com.self.eventtracking.eventservice.controller.EventQueryService;
 import com.self.eventtracking.eventservice.helper.EventKeyValue;
+import com.self.eventtracking.eventservice.service.EventQueryService;
 
 @Service
 public class EventConsumer {
 
-	@Autowired
 	private EventQueryService eventQueryService;
+	
+	public EventConsumer(EventQueryService eventQueryService) {
+		this.eventQueryService = eventQueryService;
+	}
 	
 	private final Logger logger = LoggerFactory.getLogger(EventConsumer.class);
 	

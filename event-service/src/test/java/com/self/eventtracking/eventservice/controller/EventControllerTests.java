@@ -31,6 +31,8 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import com.self.eventtracking.eventservice.dao.command.EventCommandRepository;
 import com.self.eventtracking.eventservice.dao.query.EventQueryRepository;
 import com.self.eventtracking.eventservice.exception.EventNotFoundException;
+import com.self.eventtracking.eventservice.helper.EventKeyValue;
+import com.self.eventtracking.eventservice.kafka.producer.EventProducer;
 import com.self.eventtracking.eventservice.model.EventCommand;
 import com.self.eventtracking.eventservice.model.EventQuery;
 
@@ -46,6 +48,9 @@ public class EventControllerTests {
 	
 	@Mock
 	private EventQueryRepository eventQueryRepository;
+	
+	@Mock
+	private EventProducer eventProducer;
 	
 	@Test
 	public void test_defaultConstructor() {
@@ -139,8 +144,11 @@ public class EventControllerTests {
 				"013543e9-1eed-419b-93fb-4ad752d3391c", "dummy", "dummy", "dummy", null, null, null, 10));
 		
 		EventController controller = new EventController(eventCommandRepository, eventQueryRepository);
+		controller.setEventProducer(eventProducer);
+		
 		Mockito.when(eventCommandRepository.findById(Mockito.anyString())).thenReturn(event);
 		Mockito.doNothing().when(eventCommandRepository).deleteById(Mockito.anyString());
+		Mockito.doNothing().when(eventProducer).sendMessage(Mockito.any(EventKeyValue.class));
 		
 		controller.deleteEvent("013543e9-1eed-419b-93fb-4ad752d3391c");
 	}
@@ -150,6 +158,7 @@ public class EventControllerTests {
 		
 		EventCommand eventToBeSaved = new EventCommand("", "dummy", "dummy", "dummy", null, null, null, 10);
 		EventController controller = new EventController(eventCommandRepository, eventQueryRepository);
+		controller.setEventProducer(eventProducer);
 		
 		MockHttpServletRequest request = new MockHttpServletRequest();
 	    RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
@@ -158,6 +167,7 @@ public class EventControllerTests {
 	    ResponseEntity<EventCommand> response = ResponseEntity.created(location).build();
 	    
 	    Mockito.when(eventCommandRepository.save(eventToBeSaved)).thenReturn(eventToBeSaved);
+	    Mockito.doNothing().when(eventProducer).sendMessage(Mockito.any(EventKeyValue.class));
 	    
 	    ResponseEntity<EventCommand> result =  controller.createEvent(eventToBeSaved);
 	    
@@ -172,7 +182,10 @@ public class EventControllerTests {
 		EventCommand eventToBeUpdated = new EventCommand("", "dummy", "dummy", "dummy", null, null, null, 10);
 		
 		EventController controller = new EventController(eventCommandRepository, eventQueryRepository);
+		controller.setEventProducer(eventProducer);
+		
 		Mockito.when(eventCommandRepository.findById(Mockito.anyString())).thenReturn(event);
+		Mockito.doNothing().when(eventProducer).sendMessage(Mockito.any(EventKeyValue.class));
 		
 		assertThrows(EventNotFoundException.class,
 						() -> {
@@ -186,6 +199,7 @@ public class EventControllerTests {
 		Optional<EventCommand> eventToBeUpdated = Optional.ofNullable(new EventCommand(
 				"013543e9-1eed-419b-93fb-4ad752d3391c", "dummy", "dummy", "dummy", null, null, null, 10));
 		EventController controller = new EventController(eventCommandRepository, eventQueryRepository);
+		controller.setEventProducer(eventProducer);
 		
 		MockHttpServletRequest request = new MockHttpServletRequest();
 	    RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
@@ -195,6 +209,7 @@ public class EventControllerTests {
 	    
 	    Mockito.when(eventCommandRepository.findById(Mockito.anyString())).thenReturn(eventToBeUpdated);
 	    Mockito.when(eventCommandRepository.save(eventToBeUpdated.get())).thenReturn(eventToBeUpdated.get());
+	    Mockito.doNothing().when(eventProducer).sendMessage(Mockito.any(EventKeyValue.class));
 	    
 		assertThat(controller.updateEvent(eventToBeUpdated.get())).isEqualTo(response);
 	}
